@@ -1,0 +1,46 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+
+# === Virtual Environment ===
+venv/
+env/
+.env
+*.venv
+
+# === Flask / App ===
+instance/
+.webassets-cache
+
+# === Output / Data files ===
+outputs/
+data/asteroids/*.json
+data/population/*.geojson
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Logs ===
+*.log
+pip-log.txt
+
+# === Testing ===
+.pytest_cache/
+htmlcov/
+.coverage

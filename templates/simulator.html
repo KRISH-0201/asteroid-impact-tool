@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Simulator — AsteroidIQ</title>
+    <meta name="description" content="Interactive asteroid impact simulator with real physics. Choose type, size, speed, pick a target on the map and see the full damage analysis.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/simulator.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="sim-body">
+    <!-- Starfield Background -->
+    <div class="sim-bg">
+        <div class="stars"></div>
+        <div class="twinkling"></div>
+        <canvas id="particle-canvas"></canvas>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sim-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <span style="font-size:1.4rem">☄️</span>
+                <span class="brand-name">AsteroidIQ</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link"><i class="fas fa-home"></i> Home</a>
+                <a href="/simulator" class="nav-link active"><i class="fas fa-rocket"></i> Simulator</a>
+                <a href="/dashboard" class="nav-link"><i class="fas fa-satellite"></i> Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="sim-main">
+        <!-- Historical Presets Bar -->
+        <div class="presets-bar">
+            <span class="presets-label"><i class="fas fa-history"></i> Historical Presets:</span>
+            <div class="presets-scroll">
+                <button class="preset-chip" data-preset="chelyabinsk" title="2013 Chelyabinsk">💥 Chelyabinsk 2013</button>
+                <button class="preset-chip" data-preset="tunguska" title="1908 Tunguska event">🌲 Tunguska 1908</button>
+                <button class="preset-chip" data-preset="barringer" title="Barringer Crater Arizona">🕳️ Barringer Crater</button>
+                <button class="preset-chip" data-preset="chicxulub" title="Dino-killer impact" style="border-color:rgba(244,67,54,0.4);color:#ef9a9a">☄️ Chicxulub (Dino-killer)</button>
+                <button class="preset-chip" data-preset="city_killer" title="Typical city-killer">🏙️ City Killer (500m)</button>
+                <button class="preset-chip" data-preset="ocean_impact" title="Ocean impact tsunami">🌊 Ocean Impact</button>
+            </div>
+        </div>
+
+        <div class="sim-layout">
+            <!-- ── LEFT PANEL ── -->
+            <aside class="control-panel" id="control-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-sliders-h"></i> Parameters</h3>
+                    <div class="panel-status" id="panel-status">
+                        <div class="status-dot"></div>
+                        <span>Ready</span>
+                    </div>
+                </div>
+
+                <!-- Asteroid Type -->
+                <div class="control-group">
+                    <h4 class="group-title"><i class="fas fa-meteor"></i> Composition</h4>
+                    <div class="asteroid-types">
+                        <div class="asteroid-card active" data-type="stone" tabindex="0">
+                            <div class="ast-card-icon stone-asteroid"></div>
+                            <div class="ast-card-info">
+                                <strong>Stony</strong>
+                                <small>3,000 kg/m³ · Most common</small>
+                            </div>
+                        </div>
+                        <div class="asteroid-card" data-type="iron" tabindex="0">
+                            <div class="ast-card-icon iron-asteroid"></div>
+                            <div class="ast-card-info">
+                                <strong>Metallic</strong>
+                                <small>7,800 kg/m³ · High density</small>
+                            </div>
+                        </div>
+                        <div class="asteroid-card" data-type="carbon" tabindex="0">
+                            <div class="ast-card-icon carbon-asteroid"></div>
+                            <div class="ast-card-info">
+                                <strong>Carbonaceous</strong>
+                                <small>2,000 kg/m³ · Fragile</small>
+                            </div>
+                        </div>
+                        <div class="asteroid-card" data-type="comet" tabindex="0">
+                            <div class="ast-card-icon comet-asteroid"></div>
+                            <div class="ast-card-info">
+                                <strong>Comet</strong>
+                                <small>500 kg/m³ · Icy volatile</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diameter -->
+                <div class="control-group">
+                    <div class="group-title-row">
+                        <h4 class="group-title"><i class="fas fa-ruler"></i> Diameter</h4>
+                        <span class="param-value" id="diameter-value">100 m</span>
+                    </div>
+                    <div class="slider-wrap">
+                        <input type="range" id="diameter-slider" class="enhanced-slider" min="10" max="2000" value="100" step="5">
+                        <div class="slider-track-labels">
+                            <span>10m</span>
+                            <span>Building</span>
+                            <span>City</span>
+                            <span>2km</span>
+                        </div>
+                    </div>
+                    <div class="scale-reference" id="diameter-reference">
+                        🏢 About as wide as a city block
+                    </div>
+                </div>
+
+                <!-- Speed -->
+                <div class="control-group">
+                    <div class="group-title-row">
+                        <h4 class="group-title"><i class="fas fa-tachometer-alt"></i> Velocity</h4>
+                        <span class="param-value" id="speed-value">17 km/s</span>
+                    </div>
+                    <div class="slider-wrap">
+                        <input type="range" id="speed-slider" class="enhanced-slider" min="5" max="72" value="17" step="1">
+                        <div class="slider-track-labels">
+                            <span>5 km/s</span>
+                            <span>Avg: 17</span>
+                            <span>72 km/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Angle -->
+                <div class="control-group">
+                    <div class="group-title-row">
+                        <h4 class="group-title"><i class="fas fa-angle-down"></i> Entry Angle</h4>
+                        <span class="param-value" id="angle-value">45°</span>
+                    </div>
+                    <div class="slider-wrap">
+                        <input type="range" id="angle-slider" class="enhanced-slider" min="15" max="90" value="45" step="5">
+                        <div class="slider-track-labels">
+                            <span>15° (Grazing)</span>
+                            <span>90° (Vertical)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mitigation Strategy -->
+                <div class="control-group">
+                    <h4 class="group-title"><i class="fas fa-shield-alt"></i> Defense Scenario</h4>
+                    <select id="mitigation-select" class="strategy-select">
+                        <option value="none">No Mitigation (Worst Case)</option>
+                        <option value="kinetic_impactor">🚀 Kinetic Impactor (DART-style)</option>
+                        <option value="gravitational_repulsion">🌐 Gravity Tractor</option>
+                        <option value="zero_g_impactor">⚡ Zero-G Impactor</option>
+                        <option value="evacuation">🚨 Evacuation Only</option>
+                    </select>
+                </div>
+
+                <!-- Launch Button -->
+                <button class="launch-btn" id="launch-button">
+                    <span class="launch-glow"></span>
+                    <i class="fas fa-rocket"></i>
+                    <span>SIMULATE IMPACT</span>
+                    <div class="launch-shockwave"></div>
+                </button>
+
+                <!-- Quick Stats Preview -->
+                <div class="quick-preview" id="quick-preview">
+                    <div class="qp-item">
+                        <span class="qp-label">Est. Energy</span>
+                        <span class="qp-value" id="qp-energy">—</span>
+                    </div>
+                    <div class="qp-item">
+                        <span class="qp-label">Mass</span>
+                        <span class="qp-value" id="qp-mass">—</span>
+                    </div>
+                    <div class="qp-item">
+                        <span class="qp-label">Category</span>
+                        <span class="qp-value" id="qp-category">—</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ── CENTER: Map + Loading ── -->
+            <div class="map-panel">
+                <div class="map-header">
+                    <div class="map-title-row">
+                        <h3><i class="fas fa-globe-americas"></i> Select Impact Location</h3>
+                        <span class="coords-display" id="current-coordinates">40.7128°N, 74.0060°W</span>
+                    </div>
+                    <!-- City Quick-Select -->
+                    <div class="city-presets">
+                        <button class="city-btn" onclick="window.setImpactLocation(40.7128, -74.0060)" title="New York City">🗽 NYC</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(51.5074, -0.1278)" title="London">🎡 London</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(35.6762, 139.6503)" title="Tokyo">🗼 Tokyo</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(28.6139, 77.2090)" title="New Delhi">🕌 Delhi</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(19.0760, 72.8777)" title="Mumbai">🌆 Mumbai</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(-33.8688, 151.2093)" title="Sydney">🦘 Sydney</button>
+                        <button class="city-btn" onclick="window.setImpactLocation(0, -30)" title="Atlantic Ocean">🌊 Ocean</button>
+                    </div>
+                </div>
+
+                <div class="map-container" id="map-container">
+                    <div id="impact-map"></div>
+
+                    <!-- Loading Overlay -->
+                    <div class="sim-loading" id="simulation-loading">
+                        <div class="loading-content">
+                            <div class="loading-asteroid-anim">
+                                <div class="loading-rock"></div>
+                                <div class="loading-trail"></div>
+                                <div class="loading-impact-ring"></div>
+                            </div>
+                            <h4>Simulating Impact</h4>
+                            <p id="loading-step-text">Calculating impact physics...</p>
+                            <div class="loading-bar-outer">
+                                <div class="loading-bar-inner" id="progress-fill"></div>
+                            </div>
+                            <div class="loading-steps">
+                                <span class="lstep active" id="lstep-0">Physics</span>
+                                <span class="lstep" id="lstep-1">Atmosphere</span>
+                                <span class="lstep" id="lstep-2">Blast</span>
+                                <span class="lstep" id="lstep-3">Economic</span>
+                                <span class="lstep" id="lstep-4">AI Risk</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zone Legend -->
+                <div class="zone-legend" id="zone-legend" style="display:none">
+                    <span class="legend-item"><span class="legend-dot" style="background:#ff0000"></span>Crater</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ff6600"></span>Fireball</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ff9900"></span>Severe Blast</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ffcc00"></span>Moderate Blast</span>
+                    <span class="legend-item"><span class="legend-dot" style="background:#ffff66"></span>Light Damage</span>
+                </div>
+            </div>
+
+            <!-- ── RIGHT: AI Chat + Results ── -->
+            <div class="right-panel">
+                <!-- AI Assistant -->
+                <div class="ai-panel" id="ai-panel">
+                    <div class="ai-header">
+                        <div class="ai-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <h4>ARIA</h4>
+                            <small>Asteroid Risk Intelligence Assistant</small>
+                        </div>
+                        <div class="ai-badge">AI</div>
+                    </div>
+                    <div class="ai-messages" id="ai-messages">
+                        <div class="ai-msg ai">
+                            <p>Hello! I'm ARIA, your planetary defense analyst. Configure the parameters and run a simulation — I'll analyze the results and answer your questions.</p>
+                        </div>
+                        <div class="ai-msg ai">
+                            <p>💡 Try a <strong>100m stony asteroid</strong> at 17 km/s hitting New York. The energy released will be about 100 Hiroshima bombs.</p>
+                        </div>
+                    </div>
+                    <div class="ai-input-row">
+                        <input type="text" id="ai-input" class="ai-input" placeholder="Ask about impact effects..." maxlength="200">
+                        <button id="ai-send" class="ai-send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="results-panel" id="results-panel" style="display:none">
+                    <div class="results-header">
+                        <h3><i class="fas fa-chart-bar"></i> Impact Analysis</h3>
+                        <div class="results-actions">
+                            <button class="result-action-btn" id="btn-export" title="Export Simulation Report">
+                                <i class="fas fa-file-download"></i>
+                            </button>
+                            <button class="result-action-btn" id="btn-compare" title="Compare with another simulation">
+                                <i class="fas fa-balance-scale"></i>
+                            </button>
+                            <button class="result-action-btn" id="btn-share" title="Copy results URL">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="result-action-btn" id="btn-close-results" title="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="results-scroll" id="results-content">
+                        <!-- filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scenario Comparison Modal -->
+    <div class="compare-modal-overlay" id="compare-modal" style="display:none">
+        <div class="compare-modal-dialog">
+            <div class="compare-modal-header">
+                <div class="modal-title-group">
+                    <span class="modal-badge"><i class="fas fa-balance-scale"></i> Dual Scenario Engine</span>
+                    <h3>Asteroid Impact Scenario Comparison</h3>
+                    <p>Compare two impact simulations side by side with real-time differential physics</p>
+                </div>
+                <button class="modal-close-btn" id="close-compare-modal">&times;</button>
+            </div>
+            
+            <div class="compare-selectors-row">
+                <!-- Scenario A Setup -->
+                <div class="compare-setup-card card-scenario-a">
+                    <div class="scenario-header">
+                        <span class="scenario-tag tag-a">Scenario A</span>
+                        <select id="preset-select-a" class="scenario-preset-dropdown">
+                            <option value="current">Current Simulator Parameters</option>
+                            <option value="chelyabinsk">Chelyabinsk 2013 (20m)</option>
+                            <option value="tunguska">Tunguska 1908 (60m)</option>
+                            <option value="barringer">Barringer Crater (50m Iron)</option>
+                            <option value="city_killer">City Killer (500m)</option>
+                            <option value="chicxulub">Chicxulub 66MYA (10km)</option>
+                        </select>
+                    </div>
+                    <div class="scenario-params-preview" id="preview-scenario-a">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="compare-vs-badge">VS</div>
+
+                <!-- Scenario B Setup -->
+                <div class="compare-setup-card card-scenario-b">
+                    <div class="scenario-header">
+                        <span class="scenario-tag tag-b">Scenario B</span>
+                        <select id="preset-select-b" class="scenario-preset-dropdown">
+                            <option value="tunguska">Tunguska 1908 (60m)</option>
+                            <option value="chicxulub">Chicxulub Dino-Killer (10km)</option>
+                            <option value="barringer">Barringer Crater (50m Iron)</option>
+                            <option value="chelyabinsk">Chelyabinsk 2013 (20m)</option>
+                            <option value="city_killer">City Killer (500m)</option>
+                            <option value="ocean_impact">Mid-Atlantic Ocean (300m)</option>
+                        </select>
+                    </div>
+                    <div class="scenario-params-preview" id="preview-scenario-b">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="compare-modal-actions">
+                <button class="compare-run-btn" id="run-comparison-btn">
+                    <i class="fas fa-play"></i> Compute Side-by-Side Analysis
+                </button>
+            </div>
+
+            <!-- Comparison Results Matrix -->
+            <div class="compare-results-area" id="compare-results-area" style="display:none">
+                <div class="comparison-grid" id="comparison-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/particles.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/interactive_map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/asteroid_simulator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/simulator_ui.js') }}"></script>
+</body>
+</html>

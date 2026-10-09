@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Asteroid Dashboard — AsteroidIQ</title>
+    <meta name="description" content="Real-time asteroid tracking dashboard with live NASA data, risk assessment, orbital visualization, and threat monitoring.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="dashboard-body">
+
+    <!-- Animated BG -->
+    <div class="animated-bg dashboard-bg">
+        <div class="stars"></div>
+        <div class="twinkling"></div>
+    </div>
+
+    <!-- Dashboard Header -->
+    <header class="dash-header">
+        <div class="dash-header-inner">
+            <div class="dash-brand">
+                <a href="/" style="text-decoration:none; display:flex; align-items:center; gap:0.5rem">
+                    <span style="font-size:1.5rem">🛰️</span>
+                    <div>
+                        <div class="dash-brand-name">AsteroidIQ</div>
+                        <div class="dash-brand-sub">Planetary Defense Dashboard</div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="dash-header-center">
+                <div class="live-pill">
+                    <div class="live-dot"></div>
+                    <span>LIVE</span>
+                    <span class="live-time" id="last-update-time">—</span>
+                </div>
+            </div>
+
+            <div class="dash-header-right">
+                <nav class="dash-nav">
+                    <a href="/simulator" class="dash-nav-link"><i class="fas fa-rocket"></i> Simulator</a>
+                    <a href="/" class="dash-nav-link"><i class="fas fa-home"></i> Home</a>
+                </nav>
+                <button class="refresh-btn" id="refresh-data" title="Refresh Data">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="dash-main">
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card type-primary" id="sc-total">
+                <div class="sc-icon"><i class="fas fa-satellite"></i></div>
+                <div class="sc-body">
+                    <div class="sc-value" id="total-tracked">—</div>
+                    <div class="sc-label">Total NEOs Tracked</div>
+                    <div class="sc-trend">NASA catalog</div>
+                </div>
+            </div>
+            <div class="stat-card type-danger" id="sc-hazardous">
+                <div class="sc-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="sc-body">
+                    <div class="sc-value" id="potentially-hazardous">—</div>
+                    <div class="sc-label">Potentially Hazardous</div>
+                    <div class="sc-trend" id="hazard-trend">≥140m, &lt;7.5M km</div>
+                </div>
+            </div>
+            <div class="stat-card type-warning">
+                <div class="sc-icon"><i class="fas fa-calendar-day"></i></div>
+                <div class="sc-body">
+                    <div class="sc-value" id="approaching-today">—</div>
+                    <div class="sc-label">Approaching Today</div>
+                    <div class="sc-trend">Next 24 hours</div>
+                </div>
+            </div>
+            <div class="stat-card type-success">
+                <div class="sc-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="sc-body">
+                    <div class="sc-value" style="font-size:1.1rem;color:#69f0ae">NOMINAL</div>
+                    <div class="sc-label">Planetary Defense Status</div>
+                    <div class="sc-trend">No imminent threats</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dash-grid">
+
+            <!-- Live Feed Panel -->
+            <div class="dash-panel panel-feed">
+                <div class="dp-header">
+                    <h3><i class="fas fa-meteor"></i> Live Asteroid Feed</h3>
+                    <div class="dp-controls">
+                        <button class="dp-btn active" id="filter-all" onclick="filterFeed('all')">All</button>
+                        <button class="dp-btn" id="filter-hazardous" onclick="filterFeed('hazardous')">⚠ Hazardous</button>
+                    </div>
+                </div>
+                <div class="dp-body">
+                    <div class="feed-header-row">
+                        <span>Asteroid</span>
+                        <span>Diameter</span>
+                        <span>Speed</span>
+                        <span>Miss Distance</span>
+                        <span>Threat</span>
+                        <span>Action</span>
+                    </div>
+                    <div id="approaching-list" class="feed-list">
+                        <div class="loading-placeholder">
+                            <div class="lp-row"></div>
+                            <div class="lp-row"></div>
+                            <div class="lp-row"></div>
+                            <div class="lp-row"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sentry Risk Panel -->
+            <div class="dash-panel panel-sentry">
+                <div class="dp-header">
+                    <h3><i class="fas fa-radiation"></i> Sentry Risk Objects</h3>
+                    <a href="https://cneos.jpl.nasa.gov/sentry/" target="_blank" class="dp-ext-link">
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+                <div class="dp-body">
+                    <div id="risk-objects" class="sentry-list">
+                        <!-- Dynamic -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Size Distribution Chart -->
+            <div class="dash-panel panel-chart">
+                <div class="dp-header">
+                    <h3><i class="fas fa-chart-pie"></i> Size Distribution</h3>
+                </div>
+                <div class="dp-body chart-body">
+                    <canvas id="size-chart" style="max-height:220px"></canvas>
+                    <div class="chart-legend" id="size-legend"></div>
+                </div>
+            </div>
+
+            <!-- Speed Distribution Chart -->
+            <div class="dash-panel panel-chart">
+                <div class="dp-header">
+                    <h3><i class="fas fa-chart-bar"></i> Velocity Distribution</h3>
+                </div>
+                <div class="dp-body chart-body">
+                    <canvas id="speed-chart" style="max-height:220px"></canvas>
+                </div>
+            </div>
+
+            <!-- Global Tracking Map -->
+            <div class="dash-panel panel-map">
+                <div class="dp-header">
+                    <h3><i class="fas fa-globe-americas"></i> Global Approach Paths</h3>
+                    <div class="dp-controls">
+                        <span class="map-legend-item"><span style="background:#ef5350" class="map-dot"></span>Hazardous</span>
+                        <span class="map-legend-item"><span style="background:#00b4d8" class="map-dot"></span>Safe</span>
+                    </div>
+                </div>
+                <div class="dp-body">
+                    <div id="tracking-map" style="height:340px; border-radius:0 0 12px 12px;"></div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="dash-panel panel-status">
+                <div class="dp-header">
+                    <h3><i class="fas fa-server"></i> System Status</h3>
+                </div>
+                <div class="dp-body">
+                    <div class="status-items">
+                        <div class="status-item">
+                            <div class="si-dot green"></div>
+                            <span>NASA NEO API</span>
+                            <span class="si-status">Online</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="si-dot green"></div>
+                            <span>Physics Engine</span>
+                            <span class="si-status">Online</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="si-dot green"></div>
+                            <span>Risk Model (AI)</span>
+                            <span class="si-status">Online</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="si-dot" id="mongo-dot"></div>
+                            <span>Data Cache</span>
+                            <span class="si-status" id="mongo-status">Checking...</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="si-dot green"></div>
+                            <span>USGS Elevation</span>
+                            <span class="si-status">Online</span>
+                        </div>
+                    </div>
+
+                    <div class="system-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Simulations Cached</span>
+                            <span class="metric-value" id="cache-count">0</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Uptime</span>
+                            <span class="metric-value" id="uptime">—</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Last Refresh</span>
+                            <span class="metric-value" id="refresh-time">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <a href="/simulator" class="qa-btn primary">
+                            <i class="fas fa-rocket"></i> Run Simulation
+                        </a>
+                        <a href="/api/nasa/live-feed" target="_blank" class="qa-btn secondary">
+                            <i class="fas fa-code"></i> Raw API
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/real_time_data.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/interactive_map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard_enhanced.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.realTimeData) {
+                window.realTimeData = new RealTimeDataManager();
+            }
+            initTrackingMap();
+        });
+
+        function initTrackingMap() {
+            const mapEl = document.getElementById('tracking-map');
+            if (!mapEl || window.trackingMap) return;
+            window.trackingMap = L.map('tracking-map', { center: [20, 0], zoom: 2, zoomControl: false });
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom: 16
+            }).addTo(window.trackingMap);
+        }
+    </script>
+</body>
+</html>
