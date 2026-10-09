@@ -233,59 +233,94 @@ async function sendAIMessage() {
     input.value = '';
 
     addTypingIndicator();
-    await sleep(800);
-    removeTypingIndicator();
 
+    try {
+        const res = await fetch('/api/ai/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                question: text,
+                simulation_data: lastSimulationData || (window.asteroidSimulator ? { parameters: window.asteroidSimulator.params } : {})
+            })
+        });
+        removeTypingIndicator();
+        if (res.ok) {
+            const data = await res.json();
+            if (data.response) {
+                addAIMessage(data.response);
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn('AI API call failed, falling back to local NLP:', err);
+    }
+
+    removeTypingIndicator();
     const response = generateAIResponse(text, lastSimulationData);
     addAIMessage(response);
 }
 
 function generateAIResponse(question, simData) {
-    const q = question.toLowerCase();
+    const q = question.toLowerCase().trim();
 
-    // Context-aware responses
+    // 1. Greetings & Identity
+    if (['hi', 'hello', 'hey', 'greetings', 'who are you', 'help', 'what can you do'].some(w => q.startsWith(w) || q === w)) {
+        return `Hello! I am <strong>ARIA</strong> (Asteroid Risk Intelligence Assistant), your planetary defense and impact physics advisor.<br><br>
+        Ask me about:<br>
+        • <strong>Simulation Results</strong>: Impact energy, crater size, fatalities, or blast waves.<br>
+        • <strong>Planetary Defense</strong>: NASA's DART mission, kinetic deflection, or gravity tractors.<br>
+        • <strong>Known Asteroids</strong>: Apophis (2029 pass), Bennu, Tunguska, or Chicxulub dinosaur killer.<br>
+        • <strong>Physics</strong>: Airbursts vs ground craters, tsunamis, or thermal radiation.`;
+    }
+
+    // 2. Active Simulation Metrics
     if (simData) {
         const energy = simData.impact_basic?.energy_megatons || 0;
         const crater = simData.crater?.diameter_km || 0;
-        const deaths = (simData.crater?.people_killed || 0) + (simData.fireball?.deaths || 0) + (simData.shockwave?.deaths || 0);
+        const deaths = (simData.crater?.people_killed || 0) + (simData.fireball?.deaths || 0) + (simData.shockwave?.deaths || 0) + (simData.winds?.deaths || 0);
+        const blast = simData.shockwave?.max_range_km || 0;
+        const fireball = simData.fireball?.radius_km || 0;
 
-        if (q.includes('energy') || q.includes('powerful') || q.includes('how big')) {
-            return `The simulated impact released <strong>${formatEnergy(energy)}</strong> of energy — equivalent to <strong>${Math.round(energy / 0.015).toLocaleString()} Hiroshima bombs</strong>. ${energy > 100 ? "This is a catastrophic city-destroying event." : energy > 1 ? "Regional destruction guaranteed." : "A powerful but survivable event."}`;
+        if (q.includes('energy') || q.includes('powerful') || q.includes('how big') || q.includes('megaton') || q.includes('hiroshima')) {
+            return `The simulated impact released <strong>${formatEnergy(energy)}</strong> of kinetic energy — equivalent to approximately <strong>${Math.round(energy / 0.015).toLocaleString()} Hiroshima bombs</strong>. ${energy > 100 ? "This is a catastrophic regional to global destruction event." : energy > 1 ? "Massive regional destruction guaranteed." : "A powerful localized impact event."}`;
         }
-        if (q.includes('crater') || q.includes('hole')) {
-            return `The crater would be approximately <strong>${crater.toFixed(1)} km wide</strong> and about ${(crater * 0.2).toFixed(1)} km deep. ${crater > 50 ? "This rivals some of Earth's largest impact craters." : crater > 5 ? "A major geological feature visible from space." : "Comparable to the Barringer Crater in Arizona."}`;
+        if (q.includes('crater') || q.includes('hole') || q.includes('depth') || q.includes('size')) {
+            if (crater <= 0) return "This asteroid detonated as an <strong>atmospheric airburst</strong> before reaching the ground; no surface crater was excavated.";
+            return `The impact would excavate a crater approximately <strong>${crater.toFixed(2)} km wide</strong> and about <strong>${(crater * 0.15).toFixed(2)} km deep</strong>. For comparison, Arizona's Barringer Crater is 1.2 km wide.`;
         }
-        if (q.includes('death') || q.includes('kill') || q.includes('casualti') || q.includes('people')) {
-            return `The estimated death toll from all effects combined is approximately <strong>${deaths.toLocaleString()}</strong> people. This includes crater zone (instant), fireball radiation burns, shockwave injuries, and secondary effects like fires and building collapses.`;
+        if (q.includes('death') || q.includes('kill') || q.includes('casualti') || q.includes('people') || q.includes('fatalit') || q.includes('survive')) {
+            return `Estimated casualty toll: <strong>${deaths.toLocaleString()} fatalities</strong>. This combines ground-zero crater vaporization, thermal fireball radiation burns, blast overpressure building collapses, and hurricane-force winds.`;
         }
-        if (q.includes('defend') || q.includes('mitigat') || q.includes('stop') || q.includes('prevent')) {
+        if (q.includes('fireball') || q.includes('thermal') || q.includes('burn') || q.includes('radiation')) {
+            return `The thermal fireball extends to a lethal radius of <strong>${fireball.toFixed(2)} km</strong>, causing immediate combustible ignition and severe third-degree burns within seconds.`;
+        }
+        if (q.includes('blast') || q.includes('shockwave') || q.includes('wind') || q.includes('pressure')) {
+            return `The shockwave blast wave extends to a lethal radius of <strong>${blast.toFixed(2)} km</strong>, shattering reinforced concrete structures within the inner zone.`;
+        }
+        if (q.includes('defend') || q.includes('mitigat') || q.includes('stop') || q.includes('prevent') || q.includes('deflect')) {
             const sim = window.asteroidSimulator;
             const d = sim?.params?.diameter || 100;
-            if (d < 100) return `For a ${d}m asteroid, the most effective defense is a <strong>kinetic impactor</strong> (like NASA's DART mission) launched years in advance. Even a slight velocity change of 1 cm/s accumulates to massive deflection over time.`;
-            if (d < 500) return `A ${d}m asteroid is challenging. <strong>Kinetic impactors</strong> or <strong>gravity tractors</strong> work if detected 10+ years early. If discovered late, coordinated nuclear deflection or evacuation are the only options.`;
-            return `A ${d}m+ asteroid of this size would require a combined international response — nuclear standoff explosions, mass evacuation, and decades of lead time. Current planetary defense capability is insufficient for objects this large without decades of warning.`;
+            if (d < 150) return `For this <strong>${d}m</strong> asteroid, a <strong>Kinetic Impactor</strong> (like NASA's DART mission) launched 5–10 years early is 100% effective! Even a 1 cm/s trajectory change causes a full Earth miss over time.`;
+            if (d < 500) return `A <strong>${d}m</strong> asteroid is in the City Killer class. A single kinetic impactor is insufficient; multiple coordinated impactors or a <strong>standoff nuclear explosion</strong> are required.`;
+            return `A <strong>${d}m+</strong> asteroid is in the continental to extinction class. Decades of warning time and international space agency coordination would be required. Immediate civil evacuation is the primary short-term response.`;
         }
-        if (q.includes('tsunami') || q.includes('ocean') || q.includes('sea')) {
-            const sim = window.asteroidSimulator;
-            const lat = sim?.params?.latitude || 0;
-            const lon = sim?.params?.longitude || 0;
-            const isOcean = Math.abs(lat) < 60 && (lon < -20 || lon > 100);
-            if (isOcean) return `Ocean impacts are particularly dangerous for coastal populations. A ${crater.toFixed(0)}km crater in the ocean would generate tsunamis with initial wave heights of potentially <strong>100-500m</strong> at the source. These would propagate across ocean basins, devastating coastal cities hours later.`;
-            return `The current impact location appears to be on land. However, seismic effects could reach coastlines. For comparison, the 2004 Indian Ocean earthquake (9.1M) generated tsunamis from tectonic displacement — this impact would be orders of magnitude more powerful.`;
+        if (q.includes('tsunami') || q.includes('ocean') || q.includes('sea') || q.includes('water')) {
+            return `An ocean impact generates towering water cavity waves hundreds of meters high that propagate across ocean basins, causing catastrophic coastal flooding thousands of kilometers away.`;
         }
     }
 
-    // General knowledge responses
-    if (q.includes('tunguska')) return `The Tunguska event (1908) was a 10-15 MT airburst in Siberia caused by a ~60m stony asteroid. No crater was formed — the asteroid exploded in the atmosphere at ~8-10km altitude. It flattened ~2,150 km² of forest and knocked people off their feet 60km away.`;
-    if (q.includes('apophis')) return `Apophis (99942) is a ~370m asteroid with a notable close approach on April 13, 2029, passing inside geostationary satellite orbits. Current probability of impact: effectively zero. If it did hit, energy ~1,150 MT — a massive regional catastrophe.`;
-    if (q.includes('dart') || q.includes('dimorphos')) return `NASA's DART (Double Asteroid Redirection Test) mission successfully changed the orbit of Dimorphos in September 2022 — the first planetary defense demonstration. The 160m moonlet's orbit was shortened by 33 minutes. A major scientific success!`;
-    if (q.includes('chelyabinsk')) return `The 2013 Chelyabinsk event was a ~20m asteroid that entered at 18 km/s at a shallow angle, exploding at ~30km altitude with ~500 KT energy. It injured ~1,500 people from broken glass and a powerful shockwave. It was completely undetected beforehand.`;
-    if (q.includes('chicxulub') || q.includes('dinosaur') || q.includes('extinction')) return `The Chicxulub impactor (66 million years ago) was ~10km wide, releasing ~100 million MT. It caused global firestorms, an "impact winter" from dust blocking sunlight for years, acid rain, and the Cretaceous-Paleogene mass extinction eliminating ~75% of species including non-avian dinosaurs.`;
-    if (q.includes('nasa') || q.includes('sentry') || q.includes('track')) return `NASA tracks near-Earth objects through the Center for Near Earth Object Studies (CNEOS). The Sentry system automatically monitors for future impact risks. Currently, no known asteroid poses a significant risk in the next 100 years. However, only ~40% of objects larger than 140m have been discovered.`;
-    if (q.includes('probability') || q.includes('likely') || q.includes('chance')) return `The average interval between Tunguska-class events (15 MT) is ~500-1,000 years. City-destroyer scale (~500m) every ~50,000 years. An extinction-level event (>10km) every ~100 million years. So statistically, planetary defense is one of the best ROI investments humanity can make!`;
+    // 3. Known Asteroids & History
+    if (q.includes('tunguska')) return `The <strong>1908 Tunguska Event</strong> was a 15 MT asteroid airburst over Siberia that flattened 2,150 km² of forest with no ground crater because it exploded at 8–10 km altitude.`;
+    if (q.includes('apophis') || q.includes('2029')) return `<strong>Apophis (99942)</strong> is a ~370m asteroid making a historically close flyby on April 13, 2029, passing within 31,600 km of Earth (closer than geostationary satellites). Impact risk in 2029 is 0%.`;
+    if (q.includes('bennu')) return `<strong>Bennu (101955)</strong> is a ~500m asteroid visited by NASA's OSIRIS-REx sample return mission. It currently has the highest cumulative impact probability on NASA's Sentry Table for the late 22nd century (~1 in 1,750).`;
+    if (q.includes('dart') || q.includes('dimorphos')) return `NASA's <strong>DART</strong> mission successfully redirected the asteroid Dimorphos in September 2022 by crashing into it at 6.1 km/s, shortening its orbital period by 33 minutes!`;
+    if (q.includes('chelyabinsk')) return `The <strong>2013 Chelyabinsk Superbolide</strong> was a ~20m asteroid that exploded over Russia at 30 km altitude with ~500 KT energy, injuring 1,500 people primarily from broken window glass.`;
+    if (q.includes('chicxulub') || q.includes('dinosaur') || q.includes('extinction')) return `The <strong>Chicxulub Impactor</strong> (66 million years ago) was ~10–14 km wide, releasing ~100 million MT. It triggered global firestorms, an impact winter, and the Cretaceous-Paleogene extinction wiping out 75% of species including non-avian dinosaurs.`;
+    if (q.includes('barringer') || q.includes('arizona')) return `<strong>Barringer Crater</strong> in Arizona was created 50,000 years ago by a 50-meter metallic iron asteroid, excavating a 1.2 km wide, 170m deep crater.`;
+    if (q.includes('nasa') || q.includes('sentry') || q.includes('track') || q.includes('detect')) return `NASA's CNEOS and the automated Sentry System continuously monitor near-Earth objects using ground telescopes (ATLAS, Pan-STARRS, Catalina) and planetary radar. Over 34,000 NEOs are currently tracked.`;
 
-    // Default
-    return `Great question! After analyzing your simulation parameters, I can tell you that the key factors for impact severity are <strong>diameter, density, and velocity</strong>. A doubling of diameter increases impact energy ~8x. Try adjusting the parameters to see how sensitive the results are — start with diameter for the most dramatic effect!`;
+    // 4. Default
+    return `Regarding <em>"${question}"</em>: Impact physics is governed by <strong>diameter</strong> (mass scales cubically), <strong>density</strong> (iron, stone, or cometary ice), and <strong>velocity</strong> (kinetic energy scales quadratically with $v^2$). Try running a simulation to see the exact blast zones and planetary defense options!`;
 }
 
 // Wire up AI input

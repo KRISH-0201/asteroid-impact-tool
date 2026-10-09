@@ -140,24 +140,25 @@
                 </div>
             </div>
 
-            <!-- Size Distribution Chart -->
-            <div class="dash-panel panel-chart">
-                <div class="dp-header">
-                    <h3><i class="fas fa-chart-pie"></i> Size Distribution</h3>
+            <!-- Dual Analytics Charts (Side-by-Side) -->
+            <div class="dash-charts-container">
+                <div class="dash-panel panel-chart-box">
+                    <div class="dp-header">
+                        <h3><i class="fas fa-chart-pie"></i> Size Distribution</h3>
+                    </div>
+                    <div class="dp-body chart-body">
+                        <canvas id="size-chart" style="max-height:220px; width:100%"></canvas>
+                        <div class="chart-legend" id="size-legend"></div>
+                    </div>
                 </div>
-                <div class="dp-body chart-body">
-                    <canvas id="size-chart" style="max-height:220px"></canvas>
-                    <div class="chart-legend" id="size-legend"></div>
-                </div>
-            </div>
 
-            <!-- Speed Distribution Chart -->
-            <div class="dash-panel panel-chart">
-                <div class="dp-header">
-                    <h3><i class="fas fa-chart-bar"></i> Velocity Distribution</h3>
-                </div>
-                <div class="dp-body chart-body">
-                    <canvas id="speed-chart" style="max-height:220px"></canvas>
+                <div class="dash-panel panel-chart-box">
+                    <div class="dp-header">
+                        <h3><i class="fas fa-chart-bar"></i> Velocity Distribution</h3>
+                    </div>
+                    <div class="dp-body chart-body">
+                        <canvas id="speed-chart" style="max-height:220px; width:100%"></canvas>
+                    </div>
                 </div>
             </div>
 

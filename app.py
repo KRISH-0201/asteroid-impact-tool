@@ -415,59 +415,144 @@ def api_presets():
 # Helper functions
 def generate_aria_response(question: str, sim_data: dict) -> str:
     """Generate ARIA AI assistant response based on question and simulation context"""
-    q = question.lower()
+    q = question.lower().strip()
     
-    if sim_data:
-        energy = float(sim_data.get('impact_basic', {}).get('energy_megatons', 0))
-        crater = float(sim_data.get('crater', {}).get('diameter_km', 0))
-        deaths = int(sim_data.get('crater', {}).get('people_killed', 0) + 
-                    sim_data.get('fireball', {}).get('deaths', 0) +
-                    sim_data.get('shockwave', {}).get('deaths', 0))
+    # 1. Greetings & Identity
+    if any(q.startswith(w) or q == w for w in ['hi', 'hello', 'hey', 'greetings', 'who are you', 'what is aria', 'help', 'what can you do', 'good morning', 'good afternoon']):
+        return (
+            "Hello! I am <strong>ARIA</strong> (Asteroid Risk Intelligence Assistant), your planetary defense and impact physics advisor.<br><br>"
+            "I can assist you with:<br>"
+            "• <strong>Simulation Analysis</strong>: Ask about kinetic energy, crater diameter, casualties, blast radius, or economic losses for your simulation.<br>"
+            "• <strong>Planetary Defense</strong>: Ask about NASA's DART kinetic impactor, gravity tractors, or nuclear deflection strategies.<br>"
+            "• <strong>Impact Phenomena</strong>: Airbursts vs ground craters, thermal fireball burns, tsunamis, or seismic Richter magnitude.<br>"
+            "• <strong>Known Asteroids</strong>: Apophis (2029 close pass), Bennu, Tunguska, Chelyabinsk, or the Chicxulub dinosaur extinction.<br>"
+            "Try running a simulation and ask: <em>'Can we deflect this asteroid?'</em> or <em>'How many casualties would occur?'</em>"
+        )
+    
+    # 2. Context-Aware Inquiries (Active Simulation Metrics)
+    if sim_data and isinstance(sim_data, dict):
+        impact_basic = sim_data.get('impact_basic', {})
+        crater_data = sim_data.get('crater', {})
+        fireball_data = sim_data.get('fireball', {})
+        shockwave_data = sim_data.get('shockwave', {})
+        winds_data = sim_data.get('winds', {})
+        earthquake_data = sim_data.get('earthquake', {})
+        economic_data = sim_data.get('economic_impact', {})
+        params = sim_data.get('parameters', {})
         
-        if any(w in q for w in ['energy', 'power', 'how big', 'how strong']):
-            hiroshima = energy / 0.015
-            return f"This impact released {energy:.2f} megatons of TNT — equivalent to {hiroshima:,.0f} Hiroshima atomic bombs. {'This is a catastrophic regional to global event.' if energy > 100 else 'This is a significant but survivable event for regions far from the impact.'}"
+        energy = float(impact_basic.get('energy_megatons', 0))
+        crater_km = float(crater_data.get('diameter_km', 0))
+        fireball_km = float(fireball_data.get('radius_km', 0))
+        blast_km = float(shockwave_data.get('max_range_km', 0))
+        winds_kmh = float(winds_data.get('max_speed_kmh', 0))
+        magnitude = float(earthquake_data.get('magnitude', 0))
+        deaths = int(crater_data.get('people_killed', 0) + fireball_data.get('deaths', 0) + shockwave_data.get('deaths', 0) + winds_data.get('deaths', 0))
         
-        if any(w in q for w in ['crater', 'hole', 'size']):
-            return f"The impact would create a crater approximately {crater:.1f} km wide and {crater * 0.1:.1f} km deep. {'This is larger than most ancient craters we can see today.' if crater > 10 else 'A major geological feature visible from low orbit.'}"
-        
-        if any(w in q for w in ['death', 'kill', 'casualt', 'people', 'survive']):
-            return f"The estimated death toll from all combined effects (crater, fireball, blast wave, winds, and earthquake) is approximately {deaths:,} people. This accounts for local population density and the range of each damage mechanism."
-        
-        if any(w in q for w in ['defend', 'stop', 'prevent', 'mitigat', 'deflect']):
-            params = sim_data.get('parameters', {})
+        if any(w in q for w in ['energy', 'power', 'megaton', 'hiroshima', 'bomb', 'how big', 'how strong']):
+            hiroshima = energy / 0.015 if energy > 0 else 0
+            tsar = energy / 50.0 if energy > 0 else 0
+            scale_desc = "an extinction-level global catastrophe" if energy >= 1e6 else \
+                         "a continental-scale disaster" if energy >= 1000 else \
+                         "a catastrophic regional event capable of obliterating an entire metropolitan area" if energy >= 100 else \
+                         "a massive regional destruction event" if energy >= 1 else \
+                         "a localized blast equivalent to a low-yield tactical nuclear detonation"
+            return f"This impact releases <strong>{energy:,.2f} Megatons of TNT</strong> — equivalent to approximately <strong>{hiroshima:,.0f} Hiroshima atomic bombs</strong> (or {tsar:,.1f} Tsar Bombas). This classification is {scale_desc}."
+
+        if any(w in q for w in ['crater', 'hole', 'depth', 'crater size', 'how deep']):
+            if crater_km <= 0:
+                return "Because of atmospheric drag and ram pressure, this asteroid disintegrated as an <strong>atmospheric airburst</strong> before reaching the surface. No ground crater was excavated, but extreme downwards blast overpressure occurs."
+            return f"The ground impact would excavate a transient crater approximately <strong>{crater_km:.2f} km in diameter</strong> and roughly <strong>{(crater_km * 0.15):.2f} km deep</strong>. For comparison, Arizona's famous Barringer Meteor Crater is 1.2 km wide."
+
+        if any(w in q for w in ['death', 'kill', 'casualt', 'people', 'survive', 'fatalit', 'how many died']):
+            return (f"Estimated total casualty toll: <strong>{deaths:,} fatalities</strong>.<br>"
+                    f"Breakdown: Crater ground zero ({crater_data.get('people_killed', 0):,} instant), "
+                    f"thermal fireball radiation ({fireball_data.get('deaths', 0):,} severe burn fatalities), "
+                    f"and shockwave overpressure / building collapse ({shockwave_data.get('deaths', 0):,} fatalities). "
+                    f"Peak wind velocities reach {winds_kmh:.0f} km/h with an earthquake of M{magnitude:.1f}.")
+
+        if any(w in q for w in ['fireball', 'thermal', 'burn', 'heat', 'radiation']):
+            return f"The thermal radiation fireball reaches a maximum lethal radius of <strong>{fireball_km:.2f} km</strong>. Within this perimeter, thermal radiation flux causes immediate ignition of clothing, third-degree burns, and secondary urban firestorms."
+
+        if any(w in q for w in ['shockwave', 'blast', 'wind', 'pressure', 'overpressure']):
+            return f"The shockwave blast wave extends to a lethal range of <strong>{blast_km:.2f} km</strong> with peak ground wind gusts reaching <strong>{winds_kmh:.0f} km/h</strong>. Overpressure >5 psi will collapse multi-story concrete structures."
+
+        if any(w in q for w in ['earthquake', 'seismic', 'richter', 'shaking', 'quake']):
+            return f"The kinetic energy transferred into Earth's crust generates a seismic event of <strong>Magnitude {magnitude:.1f}</strong> on the Richter scale, detectable by global seismograph networks and causing severe structural collapse near the epicenter."
+
+        if any(w in q for w in ['economic', 'money', 'cost', 'damage', 'gdp', 'dollar', 'loss']):
+            tot_econ = economic_data.get('total_economic_impact_usd', 0)
+            recov = economic_data.get('summary', {}).get('recovery_timeline_years', 0)
+            return f"Estimated total economic destruction: <strong>${tot_econ:,.0f} USD</strong> with a projected infrastructure recovery timeline of <strong>{recov:.1f} years</strong>, disrupting regional commerce and global supply chains."
+
+        if any(w in q for w in ['defend', 'stop', 'prevent', 'mitigat', 'deflect', 'save', 'dart', 'protect']):
             d = float(params.get('diameter', 100))
             v = float(params.get('speed', 17))
-            if d < 150:
-                return f"For a {d:.0f}m asteroid at {v:.1f} km/s, a kinetic impactor (like NASA's DART mission) launched 10+ years in advance would be highly effective. Even a 1 cm/s velocity change accumulates to a full Earth radius of deflection over a decade."
-            elif d < 1000:
-                return f"A {d:.0f}m object is in the challenging range. Multiple kinetic impactors or a standoff nuclear explosion would be needed with decades of warning time. Detection is the critical first step."
+            if d <= 150:
+                return f"For this <strong>{d:.0f}m</strong> asteroid traveling at {v:.1f} km/s, a <strong>Kinetic Impactor</strong> (similar to NASA's DART mission) launched 5–10 years prior to predicted impact achieves 100% mission success! A velocity delta (Δv) of only a few cm/s accumulates into a full Earth radius miss distance over orbital timescales."
+            elif d <= 500:
+                return f"This <strong>{d:.0f}m</strong> asteroid is in the 'City Killer' class. A single kinetic impactor is insufficient; multiple synchronized kinetic impactors or a <strong>Standoff Nuclear Detonation</strong> (using X-ray vaporization to vaporize the surface and create rocket-like thrust) would be required with 10–20 years warning time."
             else:
-                return f"A {d:.0f}m impactor is in the extinction-class range. No current technology can reliably deflect this on short notice. Decades of preparation and international coordination would be required. Evacuation of the impact zone may be the only near-term option."
-    
-    # General knowledge responses
-    if any(w in q for w in ['tunguska']):
-        return "The 1908 Tunguska event was a 60m asteroid airburst over Siberia releasing ~15 MT of energy. It flattened 2,150 km² of forest. No crater formed because the asteroid exploded at ~8-10km altitude. It remains the largest impact event in recorded history."
-    
-    if any(w in q for w in ['dart', 'dimorphos', 'kinetic']):
-        return "NASA's DART mission (2022) successfully redirected the asteroid Dimorphos by crashing a spacecraft into it at 6.1 km/s. The moon's orbit around Didymos was shortened by 33 minutes — a proof-of-concept for planetary defense!"
-    
-    if any(w in q for w in ['apophis']):
-        return "Apophis (99942) will make a historically close pass on April 13, 2029, coming within 38,000 km — closer than geostationary satellites. Probability of impact: essentially zero. Diameter: ~370m. Impact energy if it hit: ~1,150 MT."
-    
-    if any(w in q for w in ['chicxulub', 'dinosaur', 'extinction']):
-        return "The Chicxulub impactor (66 million years ago) was ~10km wide, releasing ~100 million MT. It triggered global wildfires, an impact winter lasting years from dust and soot, acid rain, and the Cretaceous-Paleogene extinction killing ~75% of species."
-    
-    if any(w in q for w in ['probability', 'likely', 'risk', 'chance']):
-        return "Impact probabilities: Tunguska-class (15 MT) every ~500-1,000 years; city-destroyer (500m+) every ~50,000 years; extinction-level (10km+) every ~100 million years. Only ~40% of objects >140m have been catalogued — discovery is the key challenge."
-    
-    if any(w in q for w in ['nasa', 'track', 'detect', 'monitor']):
-        return "NASA's CNEOS tracks near-Earth objects using telescope networks (ATLAS, Pan-STARRS, Catalina). The Sentry system automatically computes impact probabilities for all known NEOs. The ESA Space Situational Awareness program and NELIOTA also contribute globally."
-    
-    return ("Great question! Asteroid impact science involves many interacting factors: the size determines mass, which with velocity gives kinetic energy. "
-            "Energy determines crater size, fireball radius, and blast wave extent. Location determines casualties. "
-            "Try running a simulation and I can give you specific insights! Key tip: doubling the diameter increases energy by ~8x.")
+                return f"An asteroid of <strong>{d:.0f}m</strong> is in the continental/extinction category. Current technology cannot deflect this object without at least 30–50 years advance discovery. The primary planetary defense priority would be mass civil evacuation and underground shelter protocols."
 
+    # 3. Defense Concepts
+    if any(w in q for w in ['dart', 'dimorphos', 'didymos', 'kinetic impactor', 'kinetic']):
+        return "NASA's <strong>DART</strong> (Double Asteroid Redirection Test) mission made history on September 26, 2022, by intentionally slamming a 570 kg spacecraft into the asteroid moonlet Dimorphos at 6.1 km/s. It shortened Dimorphos's orbital period by 33 minutes—proving humanity can deflect hazardous asteroids!"
+
+    if any(w in q for w in ['gravity tractor', 'tractor']):
+        return "A <strong>Gravity Tractor</strong> is a non-contact planetary defense spacecraft. By hovering close to an asteroid for months to years, its mutual gravitational attraction gently tugs the asteroid off its collision trajectory without risking fragmentation."
+
+    if any(w in q for w in ['nuke', 'nuclear', 'standoff']):
+        return "For large asteroids (>500m) discovered with short warning time, a <strong>Standoff Nuclear Detonation</strong> is the most viable option. Rather than blowing the asteroid apart (which creates dangerous shotgun fragments), the bomb detonates hundreds of meters away; intense X-ray and neutron flux vaporizes a thin surface layer, acting as a rocket exhaust that pushes the asteroid away."
+
+    if any(w in q for w in ['evacuat', 'shelter', 'what to do', 'civil defense', 'prepare']):
+        return "In an imminent asteroid impact scenario:<br>1. Evacuate the primary impact ground zero and tsunami inundation zones.<br>2. Move away from glass windows (the majority of Chelyabinsk injuries were caused by shattered window glass from the blast wave seconds after the visual flash).<br>3. Take shelter in reinforced interior rooms or underground basements."
+
+    # 4. Impact Physics
+    if any(w in q for w in ['tsunami', 'ocean impact', 'water impact', 'sea', 'ocean']):
+        return "Ocean impacts generate towering initial water cavity waves hundreds of meters high. While deep-ocean waves lose energy through dispersion, as they approach continental shelves, they compress and inundate coastlines for thousands of kilometers, posing catastrophic risks to coastal population centers."
+
+    if any(w in q for w in ['airburst', 'explode in air', 'break up', 'atmospheric entry']):
+        return "An <strong>Airburst</strong> occurs when aerodynamic drag and dynamic ram pressure exceed the internal tensile strength of the incoming asteroid. The asteroid violently pancakes and fragments at high altitude (10–30 km), dumping its kinetic energy into the atmosphere in a blinding fireball and high-pressure shockwave (like Chelyabinsk and Tunguska)."
+
+    if any(w in q for w in ['winter', 'impact winter', 'climate', 'dust', 'cooling']):
+        return "An <strong>Impact Winter</strong> is triggered when asteroids >1km vaporize rock and eject millions of tons of sub-micron silicate dust, soot, and sulfur aerosols into the stratosphere. This blocks sunlight globally, halting photosynthesis and dropping global temperatures by 5–15°C for years, causing global agricultural collapse."
+
+    if any(w in q for w in ['meteoroid', 'meteor', 'meteorite', 'comet', 'difference', 'what is an asteroid']):
+        return "Astronomical distinctions:<br>• <strong>Asteroid</strong>: Rocky or metallic celestial body orbiting the Sun (mostly in the Asteroid Belt between Mars and Jupiter).<br>• <strong>Meteoroid</strong>: Small asteroid fragment in space.<br>• <strong>Meteor</strong>: The bright streak of light as a meteoroid burns up in Earth's atmosphere ('shooting star').<br>• <strong>Meteorite</strong>: Any space rock fragment that survives atmospheric entry and hits the ground.<br>• <strong>Comet</strong>: Icy body with volatile frozen gases from the outer solar system that develops a coma and tail."
+
+    # 5. Famous Asteroids & History
+    if any(w in q for w in ['apophis', '99942']):
+        return "<strong>Apophis (99942)</strong> is a ~370-meter asteroid that will make a historically close flyby on <strong>April 13, 2029</strong>, passing within 31,600 km of Earth's surface—closer than geostationary weather satellites! NASA radar and optical observations have completely ruled out any impact in 2029 and for at least the next 100 years."
+
+    if any(w in q for w in ['bennu', '101955', 'osiris']):
+        return "<strong>Bennu (101955)</strong> is a ~500m carbonaceous asteroid visited by NASA's OSIRIS-REx mission, which returned pristine samples to Earth in 2023. Bennu currently has the highest cumulative impact probability on NASA's Sentry Risk Table for the late 22nd century (~1 in 1,750 chance around the year 2182)."
+
+    if any(w in q for w in ['tunguska', '1908']):
+        return "The <strong>1908 Tunguska Event</strong> occurred on June 30, 1908, when a ~50–60m stony asteroid exploded at an altitude of 5–10 km over Siberia, releasing ~12–15 Megatons of energy. It flattened 2,150 km² of Siberian forest (over 80 million trees) with no ground crater."
+
+    if any(w in q for w in ['chelyabinsk', '2013']):
+        return "The <strong>2013 Chelyabinsk Superbolide</strong> was a ~20m asteroid that entered undetected at 19 km/s over Russia, exploding at 30 km altitude with ~500 Kilotons of energy (30x Hiroshima). The blinding flash was followed 2–3 minutes later by a shockwave that injured ~1,500 people, primarily from flying window glass."
+
+    if any(w in q for w in ['chicxulub', 'dinosaur', 'extinction', 'k-pg', '66 million']):
+        return "The <strong>Chicxulub Impactor</strong> hit the Yucatán Peninsula 66 million years ago. It was approximately 10 to 14 km wide and released roughly <strong>100 million Megatons</strong> of kinetic energy. It triggered global megatsunamis, worldwide forest fires, acid rain, and an impact winter that wiped out 75% of all plant and animal species, including non-avian dinosaurs."
+
+    if any(w in q for w in ['barringer', 'meteor crater', 'arizona']):
+        return "<strong>Barringer Crater</strong> (Meteor Crater in Arizona) was created ~50,000 years ago by a 50-meter metallic iron-nickel asteroid traveling at ~12.8 km/s. Because of its dense iron composition, it survived atmospheric entry intact, carving a 1.2 km wide, 170-meter deep crater."
+
+    # 6. Detection & Tracking
+    if any(w in q for w in ['sentry', 'cneos', 'track', 'detect', 'telescope', 'find', 'atlas', 'pan-starrs', 'nasa']):
+        return "NASA's <strong>Center for Near Earth Object Studies (CNEOS)</strong> and the automated <strong>Sentry System</strong> monitor near-Earth objects using ground telescopes (ATLAS, Pan-STARRS, Catalina Sky Survey) and Goldstone radar. Over 34,000 NEOs have been cataloged to date, with ~95% of asteroids larger than 1 km identified."
+
+    if any(w in q for w in ['torino', 'palermo', 'scale']):
+        return "The <strong>Torino Scale</strong> is a 0 to 10 integer rating for public communication: 0 indicates zero risk of collision, 1 is normal, and 8 to 10 represent certain collisions causing regional to global catastrophes. The <strong>Palermo Technical Scale</strong> is a logarithmic scale used by specialists to assess normalized impact risk against background hazard."
+
+    # Default Intelligent Response
+    return (
+        f"Regarding your question about <em>'{question}'</em>:<br>"
+        "Impact physics is governed by three primary variables: <strong>diameter</strong> (which dictates mass by M ∝ D³), "
+        "<strong>density</strong> (iron, stone, carbonaceous, or cometary ice), and <strong>velocity</strong> (which scales kinetic energy by E = ½ M v²).<br><br>"
+        "💡 <strong>Pro Tip</strong>: Adjust the parameter sliders on the left or select a historical preset (e.g., Chelyabinsk, Tunguska, or Chicxulub) and click <strong>Simulate Impact</strong> to see the exact blast zone, crater footprint, and planetary defense options calculated live!"
+    )
 
 def get_real_world_comparison(results):
     """Compare impact to real-world events"""
