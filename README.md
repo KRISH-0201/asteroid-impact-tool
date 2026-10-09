@@ -1,157 +1,172 @@
-# 🌍 Asteroid Impact Simulator
+# ☄️ AsteroidIQ — Real-Time Planetary Defense & Impact Simulator
 
-A scientifically accurate asteroid impact simulation tool with real-time NASA data integration, atmospheric physics modeling, economic impact analysis, and planetary defense planning.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-AsteroidIQ%20on%20Render-00e5ff?style=for-the-badge&logo=render)](https://asteroid-impact-tool.onrender.com)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
+[![NASA API](https://img.shields.io/badge/NASA-API%20Integrated-orange?style=for-the-badge&logo=nasa)](https://api.nasa.gov/)
+[![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue) ![Flask](https://img.shields.io/badge/Flask-3.0-green) ![NASA API](https://img.shields.io/badge/NASA-API-orange)
+> **Live Deployment:** [https://asteroid-impact-tool.onrender.com](https://asteroid-impact-tool.onrender.com)
 
----
-
-## 🚀 Features
-
-- **Real-time NASA Integration** — Live asteroid feed from NASA's Near-Earth Object API
-- **Advanced Physics Engine** — Atmospheric entry, fragmentation, blast, seismic & fireball effects
-- **Interactive Map Simulator** — Click-to-select impact location with Leaflet.js damage zone visualization
-- **Economic Impact Analysis** — Regional GDP-based damage estimation with recovery timeline
-- **Planetary Defense Planning** — Kinetic impactor, gravity tractor, nuclear deflection strategies
-- **Live Dashboard** — Real-time asteroid tracking with NASA Sentry risk objects
-- **Fallback Mode** — Works offline with realistic demo data when NASA API rate-limited
+A science-grade planetary defense simulation platform bridging real-time NASA JPL telemetry, multi-physics hydrodynamic impact modeling, atmospheric ablation & airburst dynamics, economic damage assessment, and AI-powered planetary defense planning.
 
 ---
 
-## 🛠️ Local Setup
+## 🌟 Key Features
 
-### 1. Clone & Install
+- **🌐 Live Telemetry Feed** — Real-time orbital monitoring of near-Earth objects using NASA's NeoWs & Sentry impact risk catalogs.
+- **💥 Multi-Physics Impact Engine** — Hydrodynamic cratering equations (Schmidt-Holsapple scaling), atmospheric fragmentation/ablation, thermal fireball flux ($r^{-2}$ radiation), peak overpressure shockwaves, and seismic Richter magnitude.
+- **🛡️ Planetary Defense Planning (DART Physics)** — Interactive mitigation testing including Kinetic Impactors (NASA DART mission physics), Gravity Tractors, Zero-G impactors, and civilian evacuation modeling.
+- **⚖️ Dual-Scenario Comparison Engine** — Compare two impact scenarios side by side with real-time differential physics bars (energy ratio, crater size, casualty differential, and economic loss).
+- **🤖 ARIA AI Assistant** — Asteroid Risk Intelligence Assistant that answers complex planetary defense questions with context-aware insights based on current simulation metrics.
+- **🗺️ High-Precision GIS Mapping** — Interactive Leaflet maps powered by clean, watermark-free **Esri Dark Gray Canvas** tiles with dynamic damage zone overlays.
+- **📄 Mission Report Export** — One-click JSON mission report export detailing all parameters, physics breakdowns, and recovery timelines.
+
+---
+
+## 🚀 Live Demo & Navigation
+
+- **Landing Page**: [https://asteroid-impact-tool.onrender.com/](https://asteroid-impact-tool.onrender.com/)
+- **Impact Simulator**: [https://asteroid-impact-tool.onrender.com/simulator](https://asteroid-impact-tool.onrender.com/simulator)
+- **Live NASA Dashboard**: [https://asteroid-impact-tool.onrender.com/dashboard](https://asteroid-impact-tool.onrender.com/dashboard)
+- **API Health Check**: [https://asteroid-impact-tool.onrender.com/api/health](https://asteroid-impact-tool.onrender.com/api/health)
+
+---
+
+## 🛠️ Local Development Setup
+
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/asteroid-impact-tool.git
+git clone https://github.com/KRISH-0201/asteroid-impact-tool.git
 cd asteroid-impact-tool
+```
+
+### 2. Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Environment Variables
+### 3. Configure Environment Variables
 
 ```bash
 cp .env.example .env
-# Edit .env and set your NASA_API_KEY
 ```
 
-Get a free NASA API key at: **https://api.nasa.gov/**
+Edit `.env` and provide your NASA API key (or use the included default):
+```env
+NASA_API_KEY=DIZpTOKqJRe011xRfnquTks6ZVwxLHkQaxeVF0IU
+SECRET_KEY=your_secret_key_here
+DEBUG=True
+FLASK_ENV=development
+```
 
-> Without your own key, `DEMO_KEY` still works (30 requests/hour, 50/day)
+*(Get a free API key at [api.nasa.gov](https://api.nasa.gov/))*
 
-### 3. Run Locally
+### 4. Run Automated Test Suite
+
+```bash
+python test_all_endpoints.py
+```
+*(All 10/10 end-to-end tests should pass with 100% success rate)*
+
+### 5. Start the Server
 
 ```bash
 python app.py
 ```
 
-Open **http://localhost:5000** in your browser.
+Open your browser at **http://localhost:5001** (or **http://127.0.0.1:5001**).
 
 ---
 
-## 🌐 Deployment
+## ☁️ Deployment
 
-### Deploy to Render (Recommended — Free)
+### Render (Configured via `render.yaml`)
 
-1. Push your code to GitHub
-2. Go to **https://render.com** → New → Web Service
-3. Connect your GitHub repo
-4. Set **Build Command**: `pip install -r requirements.txt`
-5. Set **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
-6. Add environment variables:
-   - `NASA_API_KEY` = your API key
-   - `SECRET_KEY` = a random secret string
-   - `DEBUG` = `False`
+The repository includes a ready-to-use `render.yaml` blueprint:
 
-### Deploy to Heroku
-
-```bash
-heroku create your-asteroid-tool
-heroku config:set NASA_API_KEY=your_key SECRET_KEY=your_secret DEBUG=False
-git push heroku main
-```
+1. Push your repository to GitHub: `https://github.com/KRISH-0201/asteroid-impact-tool`
+2. Go to [dashboard.render.com](https://dashboard.render.com/) → **New +** → **Web Service**
+3. Connect `KRISH-0201/asteroid-impact-tool`
+4. Set:
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
+   - **Instance Type**: `Free`
+5. Environment Variables:
+   - `NASA_API_KEY`: `DIZpTOKqJRe011xRfnquTks6ZVwxLHkQaxeVF0IU`
+   - `PYTHON_VERSION`: `3.11.9`
+   - `FLASK_ENV`: `production`
+   - `DEBUG`: `False`
 
 ---
 
-## 🏗️ Project Structure
+## 🔌 API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/health` | Health check & system status |
+| `POST` | `/api/launch` | Execute full multi-physics impact simulation |
+| `POST` | `/api/compare` | Dual-scenario side-by-side comparative analysis |
+| `POST` | `/api/ai/analyze` | ARIA AI assistant contextual analysis |
+| `GET` | `/api/presets` | Historical asteroid presets (Tunguska, Chelyabinsk, Chicxulub, etc.) |
+| `GET` | `/api/nasa/live-feed` | Live tracked near-Earth objects from NASA API |
+| `GET` | `/api/nasa/sentry` | NASA Sentry potential impact risk catalog |
+| `GET` | `/api/stats/global` | Global tracking statistics & engine cache status |
+| `GET` | `/api/export/simulation/<id>`| Export simulation mission report |
+
+---
+
+## 🔬 Scientific & Physics Models
+
+| Effect / Metric | Model & Governing Physics |
+| :--- | :--- |
+| **Crater Diameter** | Schmidt-Holsapple scaling laws with target rock density and impact angle corrections |
+| **Atmospheric Entry** | Numerical integration of drag deceleration ($\frac{dv}{dt}$) & Sutton-Graves convective heating |
+| **Airburst Yield** | Hydrodynamic ram pressure vs. asteroid tensile yield strength threshold |
+| **Fireball & Thermal** | Inverse-square radiation flux decay $q = \frac{\eta E}{4\pi r^2}$ with emission duration scaling |
+| **Shockwave Blast** | Glasstone & Dolan overpressure scaling with 5 psi and 1 psi damage thresholds |
+| **Seismic Impact** | Gutenberg-Richter equivalent magnitude $M_w = 0.67 \log_{10}(E_{\text{seismic}}) - 5.87$ |
+| **Planetary Defense** | NASA DART momentum enhancement factor $\beta$ kinetic deflection modeling |
+
+---
+
+## 🏗️ Project Architecture
 
 ```
 asteroid-impact-tool/
-├── app.py                    # Flask application & API routes
-├── config.py                 # Configuration & environment variables
-├── run.py                    # CLI runner
-├── requirements.txt          # Python dependencies
-├── Procfile                  # Deployment process file
-├── runtime.txt               # Python version pin
-├── .env.example              # Environment template
+├── app.py                     # Flask application gateway & REST API routes
+├── config.py                  # System constants & environment config
+├── render.yaml                # 1-Click Render deployment blueprint
+├── requirements.txt           # Python dependencies
+├── Procfile                   # Process file for cloud deployment
+├── runtime.txt                # Python 3.11.9 runtime pin
+├── test_all_endpoints.py      # Automated 10/10 test suite
 ├── src/
-│   ├── main.py               # AsteroidLauncher — simulation orchestrator
-│   ├── impact_calculator.py  # Physics: crater, blast, seismic, fireball
-│   ├── atmospheric_model.py  # Atmospheric entry & fragmentation physics
-│   ├── economic_impact.py    # GDP-based economic damage calculator
-│   ├── population_analyzer.py# Population impact estimator
-│   ├── mitigation_solver.py  # Planetary defense strategies
-│   ├── nasa_api.py           # NASA NEO API integration
-│   ├── real_time_tracker.py  # Background asteroid monitor
-│   └── visualization.py      # Report generation
+│   ├── main.py                # AsteroidLauncher — orchestrator & math integration
+│   ├── impact_calculator.py   # Physics: crater, thermal, overpressure, seismic
+│   ├── atmospheric_model.py   # Atmospheric entry, drag & airburst model
+│   ├── mitigation_solver.py   # DART kinetic impactor & defense physics
+│   ├── economic_impact.py     # GDP-based exposure & recovery model
+│   ├── population_analyzer.py # Casualty & mortality estimations
+│   ├── nasa_api.py            # NASA NeoWs & Sentry telemetry integration
+│   ├── real_time_tracker.py   # Background telemetry monitor
+│   ├── usgs_api.py            # Elevation service integration
+│   └── visualization.py       # Mission report compiler
 ├── templates/
-│   ├── index.html            # Landing page
-│   ├── simulator.html        # Interactive simulator
-│   └── dashboard.html        # Live tracking dashboard
+│   ├── index.html             # Landing page with live feed & 3D starfield
+│   ├── simulator.html         # Impact simulator, comparison modal & ARIA chat
+│   └── dashboard.html         # Live tracking dashboard with GIS map & charts
 └── static/
-    ├── css/style.css         # Main stylesheet
-    ├── css/animations.css    # Animation keyframes
-    ├── js/asteroid_simulator.js   # Simulator logic & results display
-    ├── js/real_time_data.js  # Live data fetching & dashboard
-    ├── js/interactive_map.js # Leaflet map utilities
-    └── js/particles.js       # Particle background system
+    ├── css/                   # Responsive sci-fi stylesheets
+    └── js/                    # Interactive Leaflet maps, simulator UI & Chart.js
 ```
-
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/launch` | Run a full impact simulation |
-| `GET`  | `/api/nasa/live-feed` | Today's asteroids from NASA |
-| `GET`  | `/api/nasa/sentry` | NASA Sentry risk objects |
-| `GET`  | `/api/asteroid/<id>` | Detailed asteroid info |
-| `GET`  | `/api/stats/global` | Global tracking statistics |
-| `GET`  | `/api/simulations/active` | Active simulation list |
-
-### Example: Launch Simulation
-
-```bash
-curl -X POST http://localhost:5000/api/launch \
-  -H "Content-Type: application/json" \
-  -d '{
-    "asteroid_type": "stone",
-    "diameter": 500,
-    "speed": 20,
-    "angle": 45,
-    "latitude": 40.7128,
-    "longitude": -74.0060
-  }'
-```
-
----
-
-## 🧪 Physics Models
-
-| Effect | Model |
-|--------|-------|
-| Crater size | Holsapple scaling law with angle correction |
-| Atmospheric entry | US Standard Atmosphere + Sutton-Graves heating |
-| Fragmentation | Dynamic pressure vs material strength |
-| Blast wave | Overpressure scaling with damage zones |
-| Seismic | Energy-to-Richter-magnitude conversion |
-| Economic | Regional GDP density × damage factor |
 
 ---
 
 ## 📄 License
 
-MIT License — Educational and research use.
-
-Data provided by [NASA Near Earth Object Program](https://neo.jpl.nasa.gov/).
+This project is licensed under the **MIT License**.  
+Orbital and astronomical telemetry provided by the [NASA Near-Earth Object Program](https://cneos.jpl.nasa.gov/).
