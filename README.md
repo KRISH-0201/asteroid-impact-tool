@@ -54,10 +54,10 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and provide your NASA API key (or use the included default):
+Edit `.env` and configure your API key (get a free key at [api.nasa.gov](https://api.nasa.gov/) or use `DEMO_KEY`):
 ```env
-NASA_API_KEY="your nasa api key"
-SECRET_KEY="your_secret_key_here"
+NASA_API_KEY=your_nasa_api_key_here
+SECRET_KEY=your_secret_key_here
 DEBUG=True
 FLASK_ENV=development
 ```
@@ -96,7 +96,7 @@ The repository includes a ready-to-use `render.yaml` blueprint:
    - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
    - **Instance Type**: `Free`
 5. Environment Variables:
-   - `NASA_API_KEY`: `DIZpTOKqJRe011xRfnquTks6ZVwxLHkQaxeVF0IU`
+   - `NASA_API_KEY`: `your_nasa_api_key_here` (or get a free key from https://api.nasa.gov/)
    - `PYTHON_VERSION`: `3.11.9`
    - `FLASK_ENV`: `production`
    - `DEBUG`: `False`
