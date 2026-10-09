@@ -56,8 +56,8 @@ cp .env.example .env
 
 Edit `.env` and provide your NASA API key (or use the included default):
 ```env
-NASA_API_KEY=DIZpTOKqJRe011xRfnquTks6ZVwxLHkQaxeVF0IU
-SECRET_KEY=your_secret_key_here
+NASA_API_KEY="your nasa api key"
+SECRET_KEY="your_secret_key_here"
 DEBUG=True
 FLASK_ENV=development
 ```
