@@ -592,5 +592,5 @@ if __name__ == '__main__':
     logger.info("🎮 Simulator: http://localhost:5000/simulator")
     logger.info("📈 Dashboard: http://localhost:5000/dashboard")
     logger.info("=" * 60)
-    
-    app.run(debug=Config.DEBUG, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=Config.DEBUG, host='0.0.0.0', port=port)
